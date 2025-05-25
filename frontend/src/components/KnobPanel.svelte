@@ -22,7 +22,7 @@
 
   // Knob values
   let values = {};
-  knobDefs.forEach(({ id }) => values[id] = 50);
+  knobDefs.forEach(({ id }) => values[id] = 10);
 
   // Link states: group → gain → true/false (default: true)
   let linkXY = {
@@ -62,24 +62,93 @@
     onChange(id, values[id]);
   }
 
-  onMount(() => {
-    knobDefs.forEach(({ id }) => {
+onMount(() => {
 
-  jQuery(`#${id}`).roundSlider({
-    radius: 60,
-    width: 10,
-    min: 0,
-    max: 100,
-    step: 0.1,
-    value: values[id],
-    sliderType: "min-range",
-    editableTooltip: true,
-    showTooltip: true,
-    drag: (args) => onChange(id, args.value),
-    change: (args) => onChange(id, args.value)
-  });
+  window.runtime.EventsOn("update:pos", (gains) => {
+    console.log("update:pos", gains);
+
+    const kp = gains.kp ?? [];
+    const ki = gains.ki ?? [];
+    const kd = gains.kd ?? [];
+
+    const base = "Pos";
+    ["P", "I", "D"].forEach((gain) => {
+      const arr = gain === "P" ? kp : gain === "I" ? ki : kd;
+      ["X", "Y", "Z"].forEach((axis, j) => {
+        const id = `${base}${axis}${gain}`;
+        if (arr[j] !== undefined) {
+          values[id] = arr[j];
+          jQuery(`#${id}`).roundSlider("setValue", arr[j]);
+        } else {
+          console.warn(`Missing value for ${id}`);
+        }
+      });
     });
   });
+
+  window.runtime.EventsOn("update:att", (gains) => {
+    console.log("update:att", gains);
+
+    const kp = gains.kp ?? [];
+    const ki = gains.ki ?? [];
+    const kd = gains.kd ?? [];
+
+    const base = "Att";
+    ["P", "I", "D"].forEach((gain) => {
+      const arr = gain === "P" ? kp : gain === "I" ? ki : kd;
+      ["X", "Y", "Z"].forEach((axis, j) => {
+        const id = `${base}${axis}${gain}`;
+        if (arr[j] !== undefined) {
+          values[id] = arr[j];
+          jQuery(`#${id}`).roundSlider("setValue", arr[j]);
+        } else {
+          console.warn(`Missing value for ${id}`);
+        }
+      });
+    });
+  });
+
+  knobDefs.forEach(({ id }) => {
+    jQuery(`#${id}`).roundSlider({
+      radius: 60,
+      width: 10,
+      min: 0,
+      max: 20,
+      step: 0.1,
+      value: values[id],
+      sliderType: "min-range",
+      editableTooltip: true,
+      showTooltip: true,
+
+      // Clamp during drag to prevent wrap-around
+      drag: function(args) {
+        const MIN = args.options.min;
+        const MAX = args.options.max;
+        let v = args.value;
+
+        if (v <= MIN) {
+          this.setValue(MIN);
+          onChange(id, MIN);
+          return false; // stop internal wrap logic
+        }
+        if (v >= MAX) {
+          this.setValue(MAX);
+          onChange(id, MAX);
+          return false;
+        }
+        onChange(id, v);
+      },
+
+      // Final clamp on release
+      change: function(args) {
+        const MIN = args.options.min;
+        const MAX = args.options.max;
+        const v = Math.max(Math.min(args.value, MAX), MIN);
+        onChange(id, v);
+      }
+    });
+  });
+});
 </script>
 
 <style>
