@@ -1,10 +1,13 @@
 # PengTune
-Manual PID tuning for controllers in Peng
-# README
+
+Manual PID tuning for controllers in Peng.
+Offers plumbing to support machine tuning in the future.
 
 ## About
 
-This is the official Wails Svelte template.
+This app was built from the official Wails Svelte template.
+It is a go backend with a Svelte frontend, and uses NATS.io as a message broker
+between the backend and Peng.
 
 ## Live Development
 
